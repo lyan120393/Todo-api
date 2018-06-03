@@ -8,8 +8,8 @@ const {mongoose} = require('./db/mongoose');
 const {Todo} = require('./models/Todo');
 const {User} = require('./models/User');
 
-let port = process.env.PORT || 3000;
-let app = express();
+const port = process.env.PORT || 3000;
+const app = express();
 //之前只是载入了bodyParser,这次是进行注册它位中间件MiddleWare.
 //使用MiddleWare去保持检测req.header当中的content-type为json的文件,并把json格式转化为object对象,同时转化好的body.object对象包含到req.body当中.
 app.use(bodyParser.json());
