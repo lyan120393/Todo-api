@@ -27,17 +27,15 @@ app.post('/todos', (req, res) => {
     })
 });
 
-let isa = new Todo({
-    text : 'Happy',
-})
 
-isa.save();
 
 app.listen(3000, () => {
     console.log('Server is turn on at 3000 port.');
 })
 
-
+module.exports = {
+    app,
+}
 
 
 
