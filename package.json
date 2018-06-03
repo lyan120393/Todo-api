@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha ./server/tests/*.test.js ",
-    "test-watch": "nodemon --exec 'npm test -- --timeout=3000'"
-    
+    "test-watch": "nodemon --exec 'npm test -- --timeout=3000'",
+    "start": "node server/server.js"
   },
-  "author": "",
+  "author": "Longyituo Yan",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.18.3",
