@@ -1,6 +1,7 @@
 const expect = require('expect');
 const request = require('supertest');
 
+
 const {ObjectId} = require('mongodb');
 const {app} = require('../server');
 const {Todo} = require('../models/Todo');
@@ -150,3 +151,61 @@ describe('Get /todos/:id', () => {
 
     })
 })
+
+describe('Delete /todos/:id', () => {
+    it('expect inValid id', (done) => {
+        let id = '2333666';
+
+        request(app)
+            .delete(`/todos/${id}`)
+            .expect(404)
+            .expect((res) => {
+                expect(res.body.message).toBe('The id is not Valid.')
+            })
+            .end((err, res) => {
+                if(err){
+                    return done(err);
+                }
+                Todo.find().then((todos) => {
+                    expect(todos.length).toBe(2);
+                    done();
+                }).catch((err) => {
+                    done(err);
+                })
+            });
+    });
+
+    it('expect id not found', (done) => {
+        let fakeId = new ObjectId();
+        request(app)
+            .delete(`/todos/${fakeId.toHexString()}`)
+            .expect(404)
+            .expect((res) => {
+                expect(res.body.message).toBe('The id is not exist in Database')
+            })
+            .end(done);
+    });
+
+    it('expect delete data correct', (done) => {
+        let id = todos[0]._id;
+
+        request(app)
+            .delete(`/todos/${id}`)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.message).toBe('has been deleted')
+            })
+            .end((err, res) => {
+                if(err){
+                    return done(err);
+                }
+                Todo.find().then((todos) => {
+                    expect(todos.length).toBe(1);
+                    expect(todos[0].text).toBe('Test Two');
+                    done();
+                }).catch((err) => {
+                    done(err);
+                })
+            })
+    });
+});

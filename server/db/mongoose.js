@@ -4,4 +4,4 @@ const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 //使用mongoose去连接MongoDB.
 //参数就是本地的mongoDB的地址以及打算使用的数据库名称.
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TodoApp');
+mongoose.connect(process.env.MONGODB_URI);
