@@ -145,10 +145,11 @@ app.patch('/todos/:id', (req, res) => {
 
 }});
 
+//用户创建路由
 app.post('/user', (req, res) => {
     //通过lodash的pick获取用户输入的指定内容
-    let tempUser = _.pick(req.body, ['email', 'password']);
     //通过pick获取的指定内容, 通过User构造函数创建一个新的用户object.
+    let tempUser = _.pick(req.body, ['email', 'password']);
     //因为tempUser通过_.pick已经给我们返回了一个Obj, 所以直接把Obj作为new User的参数即可.
     let user = new User(tempUser);
     // let user = new User({
@@ -162,11 +163,22 @@ app.post('/user', (req, res) => {
         if (users.length){
             return res.status(400).send("The E-mail already exist, please try another one");
         }
-        //使用user实例去进行存储.
-        user.save().then((user) => {
-            res.send(user);
+        //使用user实例去进行存储.此时进行存储用户的信息进入数据库。
+        user.save().then(() => {
+            //返回得到的结果， 这个返回值就是返回一个token。
+            return user.generateAuthToken();
+        }).then((token) => {
+            //获取返回的token，并且成功返回了token。
+            //然后就把token的结果返回到header当中的x-auth字段当中。（x-auth是一个自定的header字段， 两个参数，一个是键名，另一个是值。）
+            //然后通过res.header()方法把包含了token的头信息发送给用户。
+            res.header('x-auth', token).send({
+                //使用定义好的toJson()方法过滤信息，只把用户的id和email发送回给用户。
+                //toJson()方法是在UserSchema当中进行定义的。 
+                //再次重申！！  pick方法能操作的是对象，不能是mongoose.model的实例对象。
+                user: user.toJson()
+            });
         }).catch((err) => {
-            res.status(400).send(err);
+            res.status(400).send({err, message:'捕获错误', user});
         });
         })
     }else{

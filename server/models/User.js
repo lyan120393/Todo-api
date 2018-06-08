@@ -4,6 +4,7 @@ const validator = require('validator');
 //ES6 写法. 前面的是你想修改的别名, 后面的在‘’之中的是具体的npm包名称或者文件名
 // import validator from 'validator';
 const jwt = require('jsonwebtoken');
+const _ = require('lodash');
 
 let UserSchema = new mongoose.Schema(
     {
@@ -43,13 +44,30 @@ let UserSchema = new mongoose.Schema(
     }
 );
 
-UserSchema.method = {
+UserSchema.methods = {
     generateAuthToken: function() {
-        //this指代的是通过UserSchama创建的UserModel的user实例.
-        this.access = 'auth';
-        this.token = jwt.sign({_id: this._id.toHexString(), access: this.access}, 'abc123').toString();
+        //使用this指代的是user的实例，这句话可以避免我们困惑。
+        let user = this;
+        //也就是说，通过如下的语句，我们可以创建access和token这两个值。
+        let access = 'auth';
+        let token = jwt.sign({_id: user._id.toHexString(), access}, 'abc123').toString();
 
+        //因为user实例的tokens属性是一个数组，所以我们可以使用数组的push方法，把增加的对象增加到数组的最后面。
         user.tokens.push({access,token});
+            // user.tokens = user.tokens.concat([{access, token}]);  //如果出现问题使用这个进行尝试。
+
+        //进行存储tokes当中的数值
+        //这个return返回的就是： 当user.save成功操作之后， 我们会得到token。并且把token作为这个功能的返回值。
+        //因为我们进行了return， 所以我们可以再server.js当中对这个结果再次进行链式then的操作。
+        return user.save().then(() => token);
+    },
+    //使用toJson功能，把mongoose.model的实例对象user转化为Javascript的对象，然后再通过_.pick方法去操作对象，并获取指定键值。
+    toJson: function(){
+        let user = this;
+        //把mongoose对象转化为JavaScript标准对象。
+        let userObject = user.toObject();
+        //通过_pick方法从对象当中提取键值。
+        return _.pick(userObject, ['_id', 'email']);
     },
     // findByToken: function() {}
 }
