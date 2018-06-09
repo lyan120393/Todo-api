@@ -5,6 +5,7 @@ const validator = require('validator');
 // import validator from 'validator';
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 let UserSchema = new mongoose.Schema(
     {
@@ -88,6 +89,30 @@ UserSchema.statics={
         })
     },
 };
+//在userSchema 当中定义了一个 Middleware, 这个 Middleware 只会在  Mongoose 的 save()功能执行之前执行.
+//无需任何的手动操作, 只要设置了这个 middleware, 并且绑上了 save 功能, 只要 save 工作, 这些指令就会先于 save 执行.
+//function 的参数 next 是非常重要的. 不可以忘记.
+UserSchema.pre('save', function(next) {
+    //因为 save 方法操作的是对象的实例, 所以我们使用 this 去指定对象的实例.
+    let user = this;
+    //判断是否密码被修改, 如果密码没有被修改,而且我们又没有判断的话, 就会不断的把已经加密的密码进行加密,这肯定是不行的.
+    //ismodified 方法就是用于,只有到密码这个字段发生了变化的时候,才会执行为真部分的代码
+    if (user.isModified('password')){
+        bcrypt.genSalt(10, (err, salt) => {
+            bcrypt.hash(user.password, salt, (err, result) => {
+                //在 user 的实力当中的 password 设置为我们已经加密之后的密码.
+                //之后就执行完毕了这个 middleware, 然后 save 就会执行,那么加密后的密码就被存储在了用户的 password 这个字段上.
+                user.password = result;
+                //一定需要 next, 如果没有,那么就卡死在这里了, 貌似 Middleware 都是这种感觉得.
+                //next 一定要在里面.
+                next();
+            })
+        })
+    }else{
+        //如果密码没有被修改,那么这个 middleware 就不进行任何操作 ,但是也必须使用 next 去让程序继续往下执行.
+        next();
+    } 
+});
 
 let User = mongoose.model('User', UserSchema );
 
