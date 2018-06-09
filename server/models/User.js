@@ -70,7 +70,24 @@ UserSchema.methods = {
         return _.pick(userObject, ['_id', 'email']);
     },
     // findByToken: function() {}
-}
+};
+
+UserSchema.statics={
+    findByToken: function(token){
+        let decode;
+        try {
+            decode = jwt.verify(token, 'abc123');
+        } catch (error) {
+            return Promise.reject('Cannot Verify token');
+        };
+        //上方的 try&catch 使用了 return, 如果一旦出现错误, 那么下方的 return 内容将会被直接跳过.
+        return User.findOne({
+            '_id':decode._id,
+            'tokens.token':token,
+            'tokens.access':'auth',
+        })
+    },
+};
 
 let User = mongoose.model('User', UserSchema );
 

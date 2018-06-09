@@ -10,6 +10,7 @@ const {mongoose} = require('./db/mongoose');
 //Load models Use desctrucuring
 const {Todo} = require('./models/Todo');
 const {User} = require('./models/User');
+const {authentic} = require('./middleware/authentic');
 
 const port = process.env.PORT
 const app = express();
@@ -166,6 +167,8 @@ app.post('/user', (req, res) => {
         //使用user实例去进行存储.此时进行存储用户的信息进入数据库。
         user.save().then(() => {
             //返回得到的结果， 这个返回值就是返回一个token。
+            //user是什么？ user是实例，user是model User的实例。
+            //使用UserSchema.method给实例添加方法，所以我们可以通过实例去操作，因为只有实例才具有_id属性。
             return user.generateAuthToken();
         }).then((token) => {
             //获取返回的token，并且成功返回了token。
@@ -174,7 +177,7 @@ app.post('/user', (req, res) => {
             res.header('x-auth', token).send({
                 //使用定义好的toJson()方法过滤信息，只把用户的id和email发送回给用户。
                 //toJson()方法是在UserSchema当中进行定义的。 
-                //再次重申！！  pick方法能操作的是对象，不能是mongoose.model的实例对象。
+                //再次重申！！ _.pick方法能操作的是对象，不能是mongoose.model的实例对象。
                 user: user.toJson()
             });
         }).catch((err) => {
@@ -184,7 +187,11 @@ app.post('/user', (req, res) => {
     }else{
         res.status(400).send('The email is not a valid email');
     };
-})
+});
+
+app.get('/user/me', authentic, (req, res) => {
+    res.send(req.user);
+});
 
 
 app.listen(port, () => {
