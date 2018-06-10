@@ -11,8 +11,8 @@ const bcrypt = require('bcryptjs');
 let plainPassword = 'tuotuo1234'
 let hashpassword = '$2a$10$RAqFijqu8U4JsQhWf1ZMLuAvu7Blxt4bdwJcM7ghU.V5byfPzTPh.';
 //compare 方法接收三个参数, 第一个是明文密码, 第二个是数据库中存储的 hashpassword, 第三个是一个回调函数,又来返回 true 或者 false.
-bcrypt.compare(plainPassword, hashpassword, (err, result) => console.log(result) );
+bcrypt.compare(plainPassword, hashpassword, (err, result) => console.log(result));
 
-if(bcrypt.compareSync(plainPassword,hashpassword)){
+if (bcrypt.compareSync(plainPassword, hashpassword)) {
   console.log(`true true`)
 }

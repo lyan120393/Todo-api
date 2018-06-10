@@ -17,6 +17,11 @@ let Todo = mongoose.model('Todo', {
     completedAt : {
         default : null,
         type : Number
+    },
+    //这个用来存储是哪个用户创建的这个 todo 的.
+    _creator: {
+        required:true,
+        type: mongoose.Schema.Types.ObjectId
     }
 });
 

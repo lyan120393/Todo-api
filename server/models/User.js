@@ -98,8 +98,11 @@ UserSchema.statics={
             'tokens.access':'auth',
         })
     },
+    //需要用户登录时提供的 email 和 密码.
     findByCredentials: function(tempEmail,tempPassword){
+        //因为操作对象是是一个 Model 方法, 所以把this 设置为 User.
         let User = this;
+        //返回一个 Promise, 如果成功找到用户, 则返回数据库中该用户信息.
         return new Promise((resolve, reject)=>{
             User.findOne({"email":tempEmail}).then((user) => {
             if (bcrypt.compareSync(tempPassword,user.password)){
@@ -121,7 +124,7 @@ UserSchema.pre('save', function(next) {
     if (user.isModified('password')){
         bcrypt.genSalt(10, (err, salt) => {
             bcrypt.hash(user.password, salt, (err, result) => {
-                //在 user 的实力当中的 password 设置为我们已经加密之后的密码.
+                //在 user 的实例当中的 password 设置为我们已经加密之后的密码.
                 //之后就执行完毕了这个 middleware, 然后 save 就会执行,那么加密后的密码就被存储在了用户的 password 这个字段上.
                 user.password = result;
                 //一定需要 next, 如果没有,那么就卡死在这里了, 貌似 Middleware 都是这种感觉得.

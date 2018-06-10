@@ -20,12 +20,13 @@ const app = express();
 app.use(bodyParser.json());
 
 //设置http的Handler为处理post请求, 路由为/todos,并执行回调函数创建一个新的todo Obejct.
-app.post('/todos', (req, res) => {
+app.post('/todos',authentic, (req, res) => {
     //通过mongoose model的构造函数生成新的Object.
     let todo = new Todo({
         //直接获取用户发送过来的信息当中的text属性.
         //如果需要获取多个用户上传的属性, 我们需要使用lodash的pick功能.参照app.patch
-        text : req.body.text
+        text : req.body.text,
+        _creator: req.user._id,
     });
     //进行save的时候,使用的是Todo的实例todo
     todo.save().then((doc) => {
@@ -37,10 +38,10 @@ app.post('/todos', (req, res) => {
     })
 });
 
-app.get('/todos', (req, res) => {
+app.get('/todos',authentic, (req, res) => {
     //通过mongoose的model去查找数据库内的所有信息
     //进行查找的时候使用的是Todo mongoose model对象.
-    Todo.find({}).then((todos) => {
+    Todo.find({_creator : req.user._id}).then((todos) => {
         //如果成功则返回,一定要返回一个对象, 因为todos本身只是一个数组,而对象除了能够包含这个数组,还能够包含其他我们想发送给访问着的内容
         res.send({
             todos,
@@ -54,7 +55,7 @@ app.get('/todos', (req, res) => {
 //Get a individual resources; Get /todos/:id
 //通过这个id可以把用户输入的相同字段位置的信息,通过req.params.id得到,然后存入到id中.
 //举例,用户如果输入 localhost:3000/todos/2333666 , 2333666就会被req.params.id取得,并存入到id当中
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id',authentic, (req, res) => {
     let id = req.params.id;
     //使用objectid的isvalid方法判断id是否是一个合法的id
     if (!ObjectId.isValid(id)){
@@ -63,7 +64,10 @@ app.get('/todos/:id', (req, res) => {
         .send({message : 'The id is not Valid.'});
     }else{
         //如果id合法,那么检测是否数据当中包含这个id
-        Todo.findById(id).then((todo) => {
+        Todo.findOne({
+            _id: id,
+            _creator: req.user._id
+        }).then((todo) => {
             if(todo){
                 res.send({todo});
             }else{
@@ -76,7 +80,7 @@ app.get('/todos/:id', (req, res) => {
     })
 }});
 
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id',authentic, (req, res) => {
     //获取用户上传的id参数
     let id = req.params.id;
     //判断id的格式是否合法
@@ -86,7 +90,11 @@ app.delete('/todos/:id', (req, res) => {
         .send({message : 'The id is not Valid.'});
     }else{
         //如果id合法,那么检测是否数据当中包含这个id
-        Todo.findById(id).then((todo) => {
+        //并检测是否创建者也是这个同一个用户
+        Todo.findOne({
+            _id:id,
+            _creator: req.user._id,
+        }).then((todo) => {
             if(todo){
                 //使用findByIdAndRemove方法删除指定的id对象.
                 //todo是我们通过ID找到的那一条,然后通过他自身的id进行删除.
@@ -109,7 +117,7 @@ app.delete('/todos/:id', (req, res) => {
 };
 });
 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id',  authentic, (req, res) => {
     let id = req.params.id;
     //监测id是否合法
     if (!ObjectId.isValid(id)){
@@ -133,7 +141,10 @@ app.patch('/todos/:id', (req, res) => {
         //开始真正的更新操作
         //使用update operator操作,设置对象的所有属性为body的属性,通过{$set:body}.
         //{new:true}, 如果new的属性位True,那么返回我们修改后的document,默认是false即返回原始对象.
-        Todo.findByIdAndUpdate(id, {$set: body},{new: true}).then((todo) => {
+        Todo.findOneAndUpdate({
+            _id:id,
+            _creator: req.user._id,
+        }, {$set: body},{new: true}).then((todo) => {
             if(!todo){
                 return res.status(404).send({message: 'Cannot to find id in database'});
             }
@@ -196,10 +207,13 @@ app.get('/user/me', authentic, (req, res) => {
 
 app.post('/user/login', (req, res) => {
     let tempUser = _.pick(req.body, ['email', 'password']);
-    //打开电脑,看到这句话,  马上要学习的就是根据用户输入的 email 和密码去查找指定的用户. 这个功能会被写在 UserSchema 的 Static 当中.
+    //根据用户输入的 email 和密码去查找指定的用户. 这个功能会被写在 UserSchema 的 Static 当中.
+    //因为这个功能是一个在 Model 上定义的功能, 所以是 Static 当中进行定义.
+    //创建一个在 UserSchema 当中的 Static 的叫做 FindByCredentials, 可以帮我们根据用户登录时输入的 email 以及密码去对服务器当中的数据进行匹配.
     User.findByCredentials(tempUser.email, tempUser.password).then((user) => {
         //如果找到了用户, 那么立刻生成一个新的 token 并返回给用户.
         return user.generateAuthToken().then((token) => {
+            //把用户的 Token 放在 header 的 x-auth 当中, 方便 Middleware authentic 调用 token 获取用户身份.
             res.header('x-auth',token).send(user.toJson())
         });
     }).catch((err) => {
@@ -210,8 +224,11 @@ app.post('/user/login', (req, res) => {
     })
 });
 
+//用户登出路由
+//需要验证用户当前的 token 是否合法, 所以使用 Middleware authentic 进行验证.
 app.delete('/user/me/token', authentic, (req, res) => {
-    //使用 removeByToken 去删除tokens 当中的 token 数组.
+    //使用 removeByToken 去删除tokens 当中的 token 数组.也就是说,把当前浏览器 header 当中的 x-auth 中的值所在的数组进行删除.
+    //如果 tokens 当中有两个数组(两个 token), 那么只会删除当前正在使用的 token 而不是所有.
     req.user.removeByToken(req.token).then(() => {
         res.send({message : 'Token has been Remove and User logOut successful.'})
     }).catch((err) => {
