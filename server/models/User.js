@@ -70,7 +70,16 @@ UserSchema.methods = {
         //通过_pick方法从对象当中提取键值。
         return _.pick(userObject, ['_id', 'email']);
     },
-    // findByToken: function() {}
+    
+    removeByToken: function(token) {
+        let user = this;
+        return user.update({
+            //$pull 进行移除tokens 属性中的数组的值为 token 的值得这个数组.
+            $pull: {
+                tokens:{token:token},
+            }
+        })
+    },
 };
 
 UserSchema.statics={

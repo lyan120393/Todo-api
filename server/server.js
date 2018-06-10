@@ -208,6 +208,15 @@ app.post('/user/login', (req, res) => {
             message: 'Cannot Find user in Database.',
         })
     })
+});
+
+app.delete('/user/me/token', authentic, (req, res) => {
+    //使用 removeByToken 去删除tokens 当中的 token 数组.
+    req.user.removeByToken(req.token).then(() => {
+        res.send({message : 'Token has been Remove and User logOut successful.'})
+    }).catch((err) => {
+        res.status(400).send(err);
+    })
 })
 
 app.listen(port, () => {
