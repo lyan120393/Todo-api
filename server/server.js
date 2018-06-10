@@ -11,6 +11,7 @@ const {mongoose} = require('./db/mongoose');
 const {Todo} = require('./models/Todo');
 const {User} = require('./models/User');
 const {authentic} = require('./middleware/authentic');
+const bcrypt = require('bcryptjs');
 
 const port = process.env.PORT
 const app = express();
@@ -190,9 +191,24 @@ app.post('/user', (req, res) => {
 });
 
 app.get('/user/me', authentic, (req, res) => {
-    res.send(req.user);
+    res.send(req.user.toJson());
 });
 
+app.post('/user/login', (req, res) => {
+    let tempUser = _.pick(req.body, ['email', 'password']);
+    //打开电脑,看到这句话,  马上要学习的就是根据用户输入的 email 和密码去查找指定的用户. 这个功能会被写在 UserSchema 的 Static 当中.
+    User.findByCredentials(tempUser.email, tempUser.password).then((user) => {
+        //如果找到了用户, 那么立刻生成一个新的 token 并返回给用户.
+        return user.generateAuthToken().then((token) => {
+            res.header('x-auth',token).send(user.toJson())
+        });
+    }).catch((err) => {
+        res.status(400).send({
+            err,
+            message: 'Cannot Find user in Database.',
+        })
+    })
+})
 
 app.listen(port, () => {
     console.log(`Server is turn on at ${port} port.`);

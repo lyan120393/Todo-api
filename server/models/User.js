@@ -75,6 +75,7 @@ UserSchema.methods = {
 
 UserSchema.statics={
     findByToken: function(token){
+        let User = this;
         let decode;
         try {
             decode = jwt.verify(token, 'abc123');
@@ -87,6 +88,17 @@ UserSchema.statics={
             'tokens.token':token,
             'tokens.access':'auth',
         })
+    },
+    findByCredentials: function(tempEmail,tempPassword){
+        let User = this;
+        return new Promise((resolve, reject)=>{
+            User.findOne({"email":tempEmail}).then((user) => {
+            if (bcrypt.compareSync(tempPassword,user.password)){
+                resolve(user);
+            }}).catch((err) => {
+                reject(err);
+            });
+        });
     },
 };
 //在userSchema 当中定义了一个 Middleware, 这个 Middleware 只会在  Mongoose 的 save()功能执行之前执行.
