@@ -51,7 +51,7 @@ UserSchema.methods = {
         let user = this;
         //也就是说，通过如下的语句，我们可以创建access和token这两个值。
         let access = 'auth';
-        let token = jwt.sign({_id: user._id.toHexString(), access}, 'abc123').toString();
+        let token = jwt.sign({_id: user._id.toHexString(), access}, process.env.JWT_SECRECT).toString();
 
         //因为user实例的tokens属性是一个数组，所以我们可以使用数组的push方法，把增加的对象增加到数组的最后面。
         user.tokens.push({access,token});
@@ -87,7 +87,7 @@ UserSchema.statics={
         let User = this;
         let decode;
         try {
-            decode = jwt.verify(token, 'abc123');
+            decode = jwt.verify(token, process.env.JWT_SECRECT);
         } catch (error) {
             return Promise.reject('Cannot Verify token');
         };
